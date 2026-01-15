@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VisionConnect 视频群聊</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>视频群聊</h1>
+      <div class="controls">
+        <input id="room" placeholder="房间ID" value="lobby">
+        <button id="join">加入</button>
+        <button id="leave" disabled>离开</button>
+        <button id="mute" disabled>静音</button>
+        <button id="video" disabled>关闭视频</button>
+        <button id="share" disabled>共享屏幕</button>
+      </div>
+    </header>
+    <div id="err" class="err"></div>
+    <main>
+      <div id="videos" class="grid">
+        <video id="v-local" autoplay playsinline muted></video>
+      </div>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+  </body>
+  </html>
