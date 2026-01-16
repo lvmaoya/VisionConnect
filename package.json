@@ -5,7 +5,9 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "signaling": "node ./mini-signaling-server-demo/index.js",
+    "dev": "node server.js",
+    "start:https": "HTTPS=1 node server.js"
   },
   "dependencies": {
     "ws": "^8.18.0"

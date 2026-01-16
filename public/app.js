@@ -6,6 +6,7 @@ const videoBtn = document.getElementById('video');
 const shareBtn = document.getElementById('share');
 const videos = document.getElementById('videos');
 const localVideo = document.getElementById('v-local');
+const recvOnly = document.getElementById('recvOnly');
 const err = document.getElementById('err');
 
 let ws = null;
@@ -17,6 +18,7 @@ let senders = new Map();
 let audioEnabled = true;
 let videoEnabled = true;
 let sharing = false;
+let receiveOnly = false;
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -35,9 +37,9 @@ function setupUIJoined(joined) {
   setEnabled(roomInput, !joined);
   setEnabled(joinBtn, !joined);
   setEnabled(leaveBtn, joined);
-  setEnabled(muteBtn, joined);
-  setEnabled(videoBtn, joined);
-  setEnabled(shareBtn, joined);
+  setEnabled(muteBtn, joined && !receiveOnly);
+  setEnabled(videoBtn, joined && !receiveOnly);
+  setEnabled(shareBtn, joined && !receiveOnly);
 }
 
 function createVideo(id) {
@@ -93,8 +95,8 @@ async function resilientGetUserMedia() {
 function updateControlStatesFromStream() {
   const hasAudio = localStream && localStream.getAudioTracks().length > 0;
   const hasVideo = localStream && localStream.getVideoTracks().length > 0;
-  setEnabled(muteBtn, !!hasAudio);
-  setEnabled(videoBtn, !!hasVideo);
+  setEnabled(muteBtn, !!hasAudio && !receiveOnly);
+  setEnabled(videoBtn, !!hasVideo && !receiveOnly);
   muteBtn.textContent = hasAudio && audioEnabled ? '静音' : '取消静音';
   videoBtn.textContent = hasVideo && videoEnabled ? '关闭视频' : '打开视频';
 }
@@ -115,11 +117,19 @@ function stopStream(stream) {
 function addPeer(id, initiator) {
   const pc = new RTCPeerConnection(pcConfig());
   peers.set(id, pc);
-  localStream.getTracks().forEach(track => {
-    const sender = pc.addTrack(track, localStream);
-    if (!senders.has(id)) senders.set(id, []);
-    senders.get(id).push(sender);
-  });
+  const hasLocalTracks = localStream && localStream.getTracks().length > 0;
+  if (hasLocalTracks) {
+    localStream.getTracks().forEach(track => {
+      const sender = pc.addTrack(track, localStream);
+      if (!senders.has(id)) senders.set(id, []);
+      senders.get(id).push(sender);
+    });
+  } else {
+    try {
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      pc.addTransceiver('audio', { direction: 'recvonly' });
+    } catch (_) {}
+  }
   pc.onicecandidate = e => {
     if (e.candidate) {
       ws.send(JSON.stringify({ type: 'signal', roomId, target: id, data: { type: 'candidate', candidate: e.candidate } }));
@@ -250,11 +260,20 @@ function leave() {
 
 joinBtn.addEventListener('click', async () => {
   roomId = roomInput.value.trim() || 'lobby';
-  try {
-    await startLocal();
+  receiveOnly = !!recvOnly.checked;
+  if (receiveOnly) {
+    localStream = null;
+    localVideo.srcObject = null;
+    audioEnabled = false;
+    videoEnabled = false;
     connect();
-  } catch (e) {
-    setupUIJoined(false);
+  } else {
+    try {
+      await startLocal();
+      connect();
+    } catch (e) {
+      setupUIJoined(false);
+    }
   }
 });
 
