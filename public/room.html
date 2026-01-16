@@ -9,12 +9,11 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
-<body class="bg-[#0e0f12] text-[#eaeef7]">
+<body class="bg-[#443b32] text-[#eaeef7] box-border">
   <div id="toastBox" class="fixed top-4 left-0 right-0 flex justify-center pointer-events-none z-50"></div>
-  <div class="h-full p-3 flex">
-    <div id="videos"
-      class="flex flex-col">
-      <div class="flex-none px-4 py-3 bg-white/10 border border-white/10 backdrop-blur-md rounded-2xl">
+  <div class="m-4 flex h-screen border border-[#2a2d33] rounded-2xl overflow-hidden">
+    <div id="videos" class="flex flex-col flex-1 bg-white/10 backdrop-blur-md  rounded-tl-2xl rounded-bl-2xl">
+      <div class="flex-none px-4 py-3 ">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3 text-[14px] text-white/70">
             <span id="meetingTime"></span>
@@ -26,13 +25,13 @@
       </div>
       <div class="relative">
         <video id="v-local"
-          class="w-full h-auto aspect-video bg-[#1a1c20] border border-[#2a2d33] rounded-xl object-cover shadow-sm"
+          class="w-full h-auto aspect-video"
           autoplay playsinline muted></video>
         <div class="absolute left-2 bottom-2 px-2 py-1 rounded-lg bg-black/40 text-white text-xs">你</div>
         <div class="tile-label">你</div>
       </div>
       <div
-        class="sticky bottom-4 mt-4 flex gap-2 justify-center p-2 bg-white/10 border border-white/10 backdrop-blur-md rounded-full">
+        class="w-fit mx-auto sticky bottom-4 mt-4 flex gap-2 justify-center p-2 bg-white/10 border border-white/10 backdrop-blur-md rounded-full">
         <button id="mute"
           class="w-10 h-10 rounded-full border border-white/10 bg-white/10 flex items-center justify-center text-white hover:brightness-110"
           disabled>
@@ -67,40 +66,40 @@
                       </button>
       </div>
     </div>
-    <div class="basis-[360px] lg:basis-[420px] flex-none">
-      <div class="h-full p-3 flex flex-col bg-[#1a1c20] border border-[#2a2d33] rounded-2xl">
-        <div class="pane h-full p-3 flex flex-col">
-          <div class="flex items-center justify-between mb-2">
-            <div class="text-white/80">消息</div>
-            <div id="chatList" class="space-y-2 flex-1 min-h-0 overflow-auto"></div>
-            <div id="chatList" class="space-y-2 flex-1 min-h-0 overflow-auto"></div>
-            <input id="chatInput"
-              class="flex-1 px-3 py-2 rounded-xl border border-white/10 bg-white/10 text-white outline-none focus:border-white/20"
-              placeholder="输入消息...">
-            <button id="chatSend" class="px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20"
-              class="flex-1 px-3 py-2 rounded-xl border border-[#2a2d33] bg-[#1a1c20] text-white outline-none"
-              placeholder="输入消息...">
-          </div>
-          <input id="room" type="hidden" value="lobby">
-          <button id="join" class="hidden">加入</button>
+    <div
+      class="basis-[360px] lg:basis-[420px]  bg-[#211d14] flex-none h-full p-3 flex flex-col ">
+      <div class="h-full p-3 flex flex-col ">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-white/80">消息</div>
+          <div id="chatList" class="space-y-2 flex-1 min-h-0 overflow-auto"></div>
+          <div id="chatList" class="space-y-2 flex-1 min-h-0 overflow-auto"></div>
+          <input id="chatInput"
+            class="flex-1 px-3 py-2 rounded-xl border border-white/10 bg-white/10 text-white outline-none focus:border-white/20"
+            placeholder="输入消息...">
+          <button id="chatSend" class="px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20"
+            class="flex-1 px-3 py-2  text-white outline-none"
+            placeholder="输入消息...">
         </div>
+        <input id="room" type="hidden" value="lobby">
+        <button id="join" class="hidden">加入</button>
+
+        <script src="/app.js"></script>
+        <script>
+          (function () {
+            const params = new URLSearchParams(location.search);
+            const key = params.get('key') || params.get('room') || params.get('id');
+            if (key) $('#room').val(key);
+            const now = new Date();
+            const t = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            $('#meetingTime').text(t);
+            $('#meetingTitle').text('房间：' + ($('#room').val() || 'lobby'));
+            window.addEventListener('load', function () {
+              const btn = document.getElementById('join');
+              if (btn) btn.click();
+            });
+          })();
+        </script>
       </div>
-      <script src="/app.js"></script>
-      <script>
-        (function () {
-          const params = new URLSearchParams(location.search);
-          const key = params.get('key') || params.get('room') || params.get('id');
-          if (key) $('#room').val(key);
-          const now = new Date();
-          const t = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-          $('#meetingTime').text(t);
-          $('#meetingTitle').text('房间：' + ($('#room').val() || 'lobby'));
-          window.addEventListener('load', function () {
-            const btn = document.getElementById('join');
-            if (btn) btn.click();
-          });
-        })();
-      </script>
     </div>
   </div>
 </body>
