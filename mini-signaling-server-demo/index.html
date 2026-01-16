@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<body>
+<button id="call">Call</button>
+
+<script>
+const roomId = 'room1'
+const ws = new WebSocket('ws://localhost:3000')
+let pc
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: 'join', roomId }))
+}
+function createPeerConnection() {
+  pc = new RTCPeerConnection()
+
+  console.log('PC created')
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) {
+      console.log('Send ICE')
+      ws.send(JSON.stringify({
+        type: 'candidate',
+        roomId,
+        candidate: e.candidate
+      }))
+    }
+  }
+
+  pc.onconnectionstatechange = () => {
+    console.log('Connection state:', pc.connectionState)
+  }
+
+  pc.oniceconnectionstatechange = () => {
+    console.log('ICE state:', pc.iceConnectionState)
+  }
+
+  pc.ondatachannel = (event) => {
+    const channel = event.channel
+    channel.onmessage = (e) => {
+      console.log('Receive message:', e.data)
+    }
+  }
+}
+
+
+ws.onmessage = async (event) => {
+  const data = JSON.parse(event.data)
+
+  if (data.type === 'offer') {
+    if (!pc) createPeerConnection()
+
+    await pc.setRemoteDescription(data.offer)
+    const answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+
+    ws.send(JSON.stringify({ type: 'answer', roomId, answer }))
+  }
+
+  if (data.type === 'answer') {
+    await pc.setRemoteDescription(data.answer)
+  }
+
+  if (data.type === 'candidate') {
+    await pc.addIceCandidate(data.candidate)
+  }
+}
+
+
+document.getElementById('call').onclick = async () => {
+  if (!pc) createPeerConnection()
+
+  const channel = pc.createDataChannel('chat')
+  channel.onopen = () => {
+    console.log('DataChannel open')
+    channel.send('Hello from caller')
+  }
+
+  channel.onmessage = (e) => {
+    console.log('Receive message:', e.data)
+  }
+
+  const offer = await pc.createOffer()
+  await pc.setLocalDescription(offer)
+
+  ws.send(JSON.stringify({ type: 'offer', roomId, offer }))
+}
+
+
+</script>
+</body>
+</html>
