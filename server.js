@@ -2,43 +2,21 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
 const { WebSocketServer, WebSocket } = require('ws');
 
 const publicDir = path.join(__dirname, 'public');
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const httpsPort = process.env.HTTPS_PORT ? parseInt(process.env.HTTPS_PORT, 10) : 3443;
 
-const mime = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.svg': 'image/svg+xml'
-};
+const app = express();
+app.disable('x-powered-by');
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+app.use(express.static(publicDir));
 
-function handleRequest(req, res) {
-  let urlPath = req.url.split('?')[0];
-  if (urlPath === '/') urlPath = '/index.html';
-  const filePath = path.join(publicDir, path.normalize(urlPath));
-  if (!filePath.startsWith(publicDir)) {
-    res.statusCode = 403;
-    res.end('Forbidden');
-    return;
-  }
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.statusCode = 404;
-      res.end('Not Found');
-      return;
-    }
-    const ext = path.extname(filePath);
-    res.setHeader('Content-Type', mime[ext] || 'application/octet-stream');
-    res.end(data);
-  });
-}
-
-const server = http.createServer(handleRequest);
+const server = http.createServer(app);
 
 const rooms = new Map();
 
@@ -46,6 +24,15 @@ function getRoom(id) {
   if (!rooms.has(id)) rooms.set(id, new Map());
   return rooms.get(id);
 }
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.get('/api/rooms', (_req, res) => {
+  const list = [...rooms.entries()].map(([id, m]) => ({ id, size: m.size }));
+  res.json({ rooms: list });
+});
 
 function attachWSS(srv) {
   const wss = new WebSocketServer({ server: srv });
@@ -116,7 +103,7 @@ if (process.env.HTTPS === '1' || process.env.HTTPS === 'true') {
       key: fs.readFileSync(keyPath),
       cert: fs.readFileSync(certPath)
     };
-    httpsServer = https.createServer(options, handleRequest);
+    httpsServer = https.createServer(options, app);
     attachWSS(httpsServer);
     httpsServer.listen(httpsPort, '0.0.0.0', () => {
       console.log(`HTTPS Server running at https://localhost:${httpsPort}/`);
