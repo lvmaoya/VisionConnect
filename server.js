@@ -14,6 +14,12 @@ app.disable('x-powered-by');
 app.get('/', (_req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
+app.get('/room', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'room.html'));
+});
+app.get('/room/*', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'room.html'));
+});
 app.use(express.static(publicDir));
 
 const server = http.createServer(app);
@@ -62,6 +68,15 @@ function attachWSS(srv) {
         if (target && target.readyState === WebSocket.OPEN) {
           target.send(JSON.stringify({ type: 'signal', from: id, data: msg.data }));
         }
+      } else if (msg.type === 'chat') {
+        if (!roomId) return;
+        const room = rooms.get(roomId);
+        if (!room) return;
+        room.forEach((sock) => {
+          if (sock.readyState === WebSocket.OPEN) {
+            sock.send(JSON.stringify({ type: 'chat', from: id, text: msg.text || '', ts: Date.now() }));
+          }
+        });
       } else if (msg.type === 'leave') {
         cleanup();
       }

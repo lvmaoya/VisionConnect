@@ -6,8 +6,7 @@ const videoBtn = document.getElementById('video');
 const shareBtn = document.getElementById('share');
 const videos = document.getElementById('videos');
 const localVideo = document.getElementById('v-local');
-const recvOnly = document.getElementById('recvOnly');
-const err = document.getElementById('err');
+const toastBox = document.getElementById('toastBox');
 
 let ws = null;
 let roomId = null;
@@ -18,7 +17,6 @@ let senders = new Map();
 let audioEnabled = true;
 let videoEnabled = true;
 let sharing = false;
-let receiveOnly = false;
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -37,30 +35,64 @@ function setupUIJoined(joined) {
   setEnabled(roomInput, !joined);
   setEnabled(joinBtn, !joined);
   setEnabled(leaveBtn, joined);
-  setEnabled(muteBtn, joined && !receiveOnly);
-  setEnabled(videoBtn, joined && !receiveOnly);
-  setEnabled(shareBtn, joined && !receiveOnly);
+  setEnabled(muteBtn, joined);
+  setEnabled(videoBtn, joined);
+  setEnabled(shareBtn, joined);
 }
 
 function createVideo(id) {
   let v = document.getElementById('v-' + id);
   if (!v) {
+    const tile = document.createElement('div');
+    tile.className = 'relative';
     v = document.createElement('video');
     v.id = 'v-' + id;
     v.autoplay = true;
     v.playsInline = true;
-    videos.appendChild(v);
+    v.className = 'w-full h-auto aspect-video bg-[#1a1c20] border border-[#2a2d33] rounded-xl object-cover shadow-sm';
+    const label = document.createElement('div');
+    label.className = 'absolute left-2 bottom-2 px-2 py-1 rounded-lg bg-black/40 text-white text-xs';
+    label.textContent = id.slice(0,6);
+    tile.appendChild(v);
+    tile.appendChild(label);
+    videos.appendChild(tile);
   }
   return v;
 }
 
 function showError(s) {
-  err.textContent = s || '';
-  err.style.display = s ? 'block' : 'none';
+  if (!toastBox) return;
+  while (toastBox.firstChild) toastBox.removeChild(toastBox.firstChild);
+  if (!s) return;
+  const t = document.createElement('div');
+  t.className = 'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl bg-black/80 text-white border border-white/10 shadow-2xl transform transition-all duration-150 ease-out opacity-0 -translate-y-3';
+  const span = document.createElement('div');
+  span.textContent = s;
+  const btn = document.createElement('button');
+  btn.className = 'ml-2 text-white/90 hover:bg-white/10 rounded-md px-2 py-1';
+  btn.textContent = '关闭';
+  btn.addEventListener('click', () => {
+    t.classList.add('opacity-0','-translate-y-3');
+    setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 150);
+  });
+  t.appendChild(span);
+  t.appendChild(btn);
+  toastBox.appendChild(t);
+  requestAnimationFrame(() => {
+    t.classList.remove('opacity-0','-translate-y-3');
+    t.classList.add('opacity-100','translate-y-0');
+  });
+  setTimeout(() => {
+    if (t.parentNode) {
+      t.classList.add('opacity-0','-translate-y-3');
+      setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 150);
+    }
+  }, 5000);
 }
 
 function clearError() {
-  showError('');
+  if (!toastBox) return;
+  while (toastBox.firstChild) toastBox.removeChild(toastBox.firstChild);
 }
 
 async function resilientGetUserMedia() {
@@ -95,8 +127,8 @@ async function resilientGetUserMedia() {
 function updateControlStatesFromStream() {
   const hasAudio = localStream && localStream.getAudioTracks().length > 0;
   const hasVideo = localStream && localStream.getVideoTracks().length > 0;
-  setEnabled(muteBtn, !!hasAudio && !receiveOnly);
-  setEnabled(videoBtn, !!hasVideo && !receiveOnly);
+  setEnabled(muteBtn, !!hasAudio);
+  setEnabled(videoBtn, !!hasVideo);
   muteBtn.textContent = hasAudio && audioEnabled ? '静音' : '取消静音';
   videoBtn.textContent = hasVideo && videoEnabled ? '关闭视频' : '打开视频';
 }
@@ -240,8 +272,11 @@ function connect() {
       addPeer(msg.id, true);
     } else if (msg.type === 'peer-left') {
       removePeer(msg.id);
+      appendChat({ from: '系统', text: `${msg.id.slice(0,6)} 离开房间` });
     } else if (msg.type === 'signal') {
       handleSignal(msg.from, msg.data);
+    } else if (msg.type === 'chat') {
+      appendChat({ from: msg.from.slice(0,6), text: msg.text });
     }
   };
   ws.onclose = () => {
@@ -260,20 +295,16 @@ function leave() {
 
 joinBtn.addEventListener('click', async () => {
   roomId = roomInput.value.trim() || 'lobby';
-  receiveOnly = !!recvOnly.checked;
-  if (receiveOnly) {
-    localStream = null;
-    localVideo.srcObject = null;
+  try {
+    await startLocal();
     audioEnabled = false;
     videoEnabled = false;
+    localStream.getAudioTracks().forEach(t => t.enabled = false);
+    localStream.getVideoTracks().forEach(t => t.enabled = false);
+    updateControlStatesFromStream();
     connect();
-  } else {
-    try {
-      await startLocal();
-      connect();
-    } catch (e) {
-      setupUIJoined(false);
-    }
+  } catch (e) {
+    setupUIJoined(false);
   }
 });
 
@@ -284,3 +315,46 @@ leaveBtn.addEventListener('click', () => {
 muteBtn.addEventListener('click', toggleAudio);
 videoBtn.addEventListener('click', toggleVideo);
 shareBtn.addEventListener('click', () => { toggleShare(); });
+
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+const chatList = document.getElementById('chatList');
+
+function appendChat({ from, text }) {
+  if (!chatList) return;
+  const item = document.createElement('div');
+  item.className = 'text-white';
+  const name = document.createElement('div');
+  name.className = 'text-xs text-white/60';
+  name.textContent = from || '你';
+  const bubble = document.createElement('div');
+  bubble.className = 'mt-1 px-3 py-2 rounded-xl bg-white/10 text-white';
+  bubble.textContent = text || '';
+  item.appendChild(name);
+  item.appendChild(bubble);
+  chatList.appendChild(item);
+  chatList.scrollTop = chatList.scrollHeight;
+}
+
+function sendChat() {
+  const text = (chatInput && chatInput.value || '').trim();
+  if (!text) return;
+  appendChat({ from: '你', text });
+  chatInput.value = '';
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'chat', roomId, text }));
+  }
+}
+
+if (chatSend) chatSend.addEventListener('click', sendChat);
+if (chatInput) chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChat();
+});
+
+try {
+  const params = new URLSearchParams(location.search);
+  const key = params.get('key') || params.get('room') || params.get('id');
+  if (key && roomInput) {
+    roomInput.value = key;
+  }
+} catch (_) {}

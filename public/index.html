@@ -3,30 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VisionConnect 视频群聊</title>
-  <link rel="stylesheet" href="/style.css">
+  <title>VisionConnect 进入聊天室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body>
-  <div class="container">
-    <header>
-      <h1>视频群聊</h1>
-      <div class="controls">
-        <input id="room" placeholder="房间ID" value="lobby">
-        <label><input id="recvOnly" type="checkbox">仅接收模式</label>
-        <button id="join">加入</button>
-        <button id="leave" disabled>离开</button>
-        <button id="mute" disabled>静音</button>
-        <button id="video" disabled>关闭视频</button>
-        <button id="share" disabled>共享屏幕</button>
-      </div>
-    </header>
-    <div id="err" class="err"></div>
-    <main>
-      <div id="videos" class="grid">
-        <video id="v-local" autoplay playsinline muted></video>
-      </div>
-    </main>
+<body class="bg-[#f7f7f9] text-[#111]">
+  <div class="min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-md p-6 bg-white rounded-2xl shadow-sm border border-[#e6e8eb]">
+      <h1 class="text-2xl font-semibold mb-4">进入聊天室</h1>
+      <label class="block text-sm text-[#667085] mb-2">密钥</label>
+      <input id="key" type="text" class="w-full border border-[#e6e8eb] rounded-xl px-3 py-2 outline-none focus:border-[#2a74ff]" placeholder="输入房间密钥">
+      <button id="enter" class="w-full mt-4 bg-[#2a74ff] text-white rounded-xl px-3 py-2 hover:bg-[#1f62d6]">进入</button>
+      <p class="text-xs text-[#667085] mt-3">提示：手机访问请使用 HTTPS 地址</p>
+    </div>
   </div>
-  <script src="/app.js"></script>
-  </body>
-  </html>
+  <script>
+    $(function(){
+      $('#enter').on('click', function(){
+        var key = ($('#key').val()||'').trim();
+        if (!key) { $('#key').focus(); return; }
+        window.location.href = '/room?key=' + encodeURIComponent(key);
+      });
+      $('#key').on('keydown', function(e){ if(e.key==='Enter') $('#enter').click(); });
+    });
+  </script>
+</body>
+</html>

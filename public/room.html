@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VisionConnect 聊天室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body class="bg-[#0e0f12] text-[#eaeef7]">
+  <div id="toastBox" class="fixed top-4 left-0 right-0 flex justify-center pointer-events-none z-50"></div>
+  <div class="h-full p-3 flex">
+    <div id="videos"
+      class="flex flex-col">
+      <div class="flex-none px-4 py-3 bg-white/10 border border-white/10 backdrop-blur-md rounded-2xl">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 text-[14px] text-white/70">
+            <span id="meetingTime"></span>
+            <span class="mx-1">|</span>
+            <span id="meetingTitle">视频群聊</span>
+          </div>
+          <div class="flex items-center gap-2"></div>
+        </div>
+      </div>
+      <div class="relative">
+        <video id="v-local"
+          class="w-full h-auto aspect-video bg-[#1a1c20] border border-[#2a2d33] rounded-xl object-cover shadow-sm"
+          autoplay playsinline muted></video>
+        <div class="absolute left-2 bottom-2 px-2 py-1 rounded-lg bg-black/40 text-white text-xs">你</div>
+        <div class="tile-label">你</div>
+      </div>
+      <div
+        class="sticky bottom-4 mt-4 flex gap-2 justify-center p-2 bg-white/10 border border-white/10 backdrop-blur-md rounded-full">
+        <button id="mute"
+          class="w-10 h-10 rounded-full border border-white/10 bg-white/10 flex items-center justify-center text-white hover:brightness-110"
+          disabled>
+          <button id="mute" class="btn-icon" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 3a4 4 0 0 1 4 4v5a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4Z" />
+              <path d="M19 11v1a7 7 0 0 1-14 0v-1" />
+            </svg>
+            <button id="video"
+              class="w-10 h-10 rounded-full border border-white/10 bg-white/10 flex items-center justify-center text-white hover:brightness-110"
+              disabled>
+              <button id="video" class="btn-icon" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V7Z" />
+                  <path d="M19 8l3-2v10l-3-2" />
+                </svg>
+                <button id="share"
+                  class="w-10 h-10 rounded-full border border-white/10 bg-white/10 flex items-center justify-center text-white hover:brightness-110"
+                  disabled>
+                  <button id="share" class="btn-icon" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M13 4h7v7h-2V7.41l-7.29 7.29-1.42-1.41L16.59 6H13V4Z" />
+                      <path d="M5 5h6v2H7v10h10v-4h2v6H5V5Z" />
+                    </svg>
+                    <button id="leave"
+                      class="w-10 h-10 rounded-full border border-red-600 bg-red-600 flex items-center justify-center text-white hover:brightness-110"
+                      disabled>
+                      <button id="leave" class="btn-icon btn-danger" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      </button>
+      </div>
+    </div>
+    <div class="basis-[360px] lg:basis-[420px] flex-none">
+      <div class="h-full p-3 flex flex-col bg-[#1a1c20] border border-[#2a2d33] rounded-2xl">
+        <div class="pane h-full p-3 flex flex-col">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-white/80">消息</div>
+            <div id="chatList" class="space-y-2 flex-1 min-h-0 overflow-auto"></div>
+            <div id="chatList" class="space-y-2 flex-1 min-h-0 overflow-auto"></div>
+            <input id="chatInput"
+              class="flex-1 px-3 py-2 rounded-xl border border-white/10 bg-white/10 text-white outline-none focus:border-white/20"
+              placeholder="输入消息...">
+            <button id="chatSend" class="px-3 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20"
+              class="flex-1 px-3 py-2 rounded-xl border border-[#2a2d33] bg-[#1a1c20] text-white outline-none"
+              placeholder="输入消息...">
+          </div>
+          <input id="room" type="hidden" value="lobby">
+          <button id="join" class="hidden">加入</button>
+        </div>
+      </div>
+      <script src="/app.js"></script>
+      <script>
+        (function () {
+          const params = new URLSearchParams(location.search);
+          const key = params.get('key') || params.get('room') || params.get('id');
+          if (key) $('#room').val(key);
+          const now = new Date();
+          const t = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+          $('#meetingTime').text(t);
+          $('#meetingTitle').text('房间：' + ($('#room').val() || 'lobby'));
+          window.addEventListener('load', function () {
+            const btn = document.getElementById('join');
+            if (btn) btn.click();
+          });
+        })();
+      </script>
+    </div>
+  </div>
+</body>
+
+</html>
